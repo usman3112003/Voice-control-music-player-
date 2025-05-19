@@ -1,0 +1,591 @@
+package com.usman
+import android.app.Activity
+import android.content.ContentUris
+import android.content.Context
+import android.media.MediaPlayer
+import android.os.Bundle
+import android.provider.MediaStore
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
+import android.widget.Toast
+import android.provider.ContactsContract
+import android.content.pm.PackageManager
+import android.os.Build
+import android.content.Intent
+import java.net.URLEncoder
+import android.net.Uri
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import java.util.*
+import java.text.SimpleDateFormat
+import kotlin.random.Random
+import android.view.View
+import android.Manifest
+import android.os.*
+import android.speech.RecognitionListener
+import android.media.AudioManager
+import android.widget.SeekBar
+
+
+
+class MainActivity : Activity() {
+
+    private var mediaPlayer: MediaPlayer? = null
+	var currentVolume = 0.5f  // volume
+    private val musicList = mutableListOf<Map<String, String>>()
+	private var currentIndex = -1
+	
+	private var command = ""
+	
+	private var tts: TextToSpeech? = null
+	private lateinit var speechRecognizer: SpeechRecognizer
+	private lateinit var speechIntent: Intent
+	private val RECORD_AUDIO_REQUEST_CODE = 1
+	
+	
+	
+	
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val musicListLayout = findViewById<LinearLayout>(R.id.musicListLayout)
+        val searchEditText = findViewById<EditText>(R.id.queryData)
+        val searchButton = findViewById<Button>(R.id.retrieveData)
+        
+		
+		
+        showMusicList(this, musicListLayout)
+
+        searchButton.setOnClickListener {
+            val query = searchEditText.text.toString().trim()
+            if (query.isNotEmpty()) {
+                displayMatchingMusic(this, musicListLayout, query)
+            }
+        }
+		
+		
+		tts = TextToSpeech(this) { status ->
+		if (status == TextToSpeech.SUCCESS) {
+		tts?.language = Locale.US
+		}
+		}
+		
+		
+		// Find the buttons in your layout
+val previousBtn = findViewById<Button>(R.id.previousBtn)
+val nextBtn = findViewById<Button>(R.id.nextBtn)
+
+// Set OnClickListener for Previous button
+previousBtn.setOnClickListener {
+    playPreviousSong(this)  // Call the playPreviousSong function
+}
+
+// Set OnClickListener for Next button
+nextBtn.setOnClickListener {
+    playNextSong(this)  // Call the playNextSong function
+}
+
+// In your Activity or Fragment
+
+// Find the Play/Pause button
+val pauseBtn = findViewById<Button>(R.id.pauseBtn)
+
+// Set OnClickListener for the Play/Pause button
+pauseBtn.setOnClickListener {
+	if (pauseBtn.text.toString() == "pause"){
+		pauseBtn.text = "play"
+		}else{
+			pauseBtn.text = "pause"
+		}
+    playAndPauseMusic(this)  // Call the playAndPauseMusic function to play or pause
+}
+
+val upVol = findViewById<Button>(R.id.upVol)
+    upVol.setOnClickListener{
+		increaseSystemVolume(this,2)
+	}
+
+val downVol = findViewById<Button>(R.id.downVol)
+    downVol.setOnClickListener{
+		decreaseSystemVolume(this,2)
+	}
+
+    val playbackMode = findViewById<Button>(R.id.playbackMode)
+	playbackMode.setOnClickListener {
+	when (playbackMode.text.toString()) {
+	"Loop All" -> playbackMode.text = "Loop Once"
+	"Loop Once" -> playbackMode.text = "Shuffle"
+	"Shuffle" -> playbackMode.text = "Loop All"
+	}
+	}
+	
+	
+	
+	val muteunmute = findViewById<Button>(R.id.muteunmute)
+	muteunmute.setOnClickListener{
+		if(muteunmute.text.toString() == "Mute"){
+			muteunmute.text = "Unmute"
+			muteandUnmute(this,true)
+			}else{
+				muteunmute.text = "Mute"
+				muteandUnmute(this,false)
+				}
+	}
+
+// Request microphone permission
+if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), RECORD_AUDIO_REQUEST_CODE)
+} else {
+startVoiceRecognition()
+}
+
+	initCurrentVolume(this)
+	      
+	
+    }
+	
+	
+	
+	private fun speak(text: String) {
+    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+}
+
+	fun initCurrentVolume(context: Context) {
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toFloat()
+    val currentSysVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+
+    currentVolume = currentSysVolume / maxVolume
+    mediaPlayer?.setVolume(currentVolume, currentVolume)
+}
+	
+	fun increaseSystemVolume(context: Context,num : Int) {
+		
+		
+	val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+	val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+	val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+	
+	if (currentVolume < maxVolume) {
+	audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume + num, AudioManager.FLAG_SHOW_UI)
+	
+	}
+	}
+	
+	fun decreaseSystemVolume(context: Context , num : Int) {
+	val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+	val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+	
+	if (currentVolume > 0 ) {
+	audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume - num, AudioManager.FLAG_SHOW_UI)
+	
+	}
+	}
+	
+	
+	fun muteandUnmute(context: Context, flag: Boolean) {
+	val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+	val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+	
+	if (flag) {
+	// Mute (decrease to 0)
+	decreaseSystemVolume(context, currentVolume)
+	} else {
+	
+	increaseSystemVolume(context, 6)
+	}
+	}
+	
+
+    private fun showMusicList(context: Context, musicLayout: LinearLayout) {
+		
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE
+        )
+
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+
+        val cursor = context.contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            null,
+            null
+        )
+
+        musicLayout.removeAllViews()
+        musicList.clear()
+
+        cursor?.use {
+            val idColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val titleColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+
+            while (it.moveToNext()) {
+                val audioId = it.getLong(idColumn)
+                val title = it.getString(titleColumn)
+                val audioUri = ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId
+                )
+
+                val dataSet = mapOf("title" to title, "audioId" to audioId.toString())
+                musicList.add(dataSet)
+
+                val titleView = TextView(context)
+                titleView.text = title
+                titleView.textSize = 16f
+                titleView.setPadding(16, 16, 16, 16)
+
+                titleView.setOnClickListener {
+                    playMusicById(context, audioId)
+					
+                }
+
+                musicLayout.addView(titleView)
+            }
+        }
+    }
+	
+
+    private fun displayMatchingMusic(context: Context, musicLayout: LinearLayout, query: String) {
+        
+
+        for (item in musicList) {
+            val title = item["title"] ?: ""
+            val audioId = item["audioId"]?.toLongOrNull()
+
+            if (title.contains(query, ignoreCase = true) && audioId != null) {
+                playMusicById(context, audioId)
+                break // Play only the first match
+            }
+        }
+    }
+
+    private fun playMusicById(context: Context, audioId: Long) {
+	val audioTit = findViewById<TextView>(R.id.auidoTit)
+	val playbackMode = findViewById<Button>(R.id.playbackMode)
+	val playingStatus = findViewById<LinearLayout>(R.id.playingStatus)
+	val seekBar = findViewById<SeekBar>(R.id.seekBar)
+	
+	mediaPlayer?.let {
+	if (it.isPlaying) {
+	it.stop()
+	it.reset()
+	}
+	}
+	
+	val audioUri = ContentUris.withAppendedId(
+	MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId
+	)
+	
+	val title = context.contentResolver.query(
+	audioUri,
+	arrayOf(MediaStore.Audio.Media.TITLE),
+	null,
+	null,
+	null
+	)?.use {
+	if (it.moveToFirst())
+	it.getString(it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE))
+	else null
+	}
+	
+	playingStatus.visibility = View.VISIBLE
+	audioTit.text = title ?: "Unknown Title"
+	audioTit.visibility = View.VISIBLE
+	
+	mediaPlayer = MediaPlayer.create(context, audioUri)
+	mediaPlayer?.start()
+	
+	val pauseBtn = findViewById<Button>(R.id.pauseBtn)
+	pauseBtn.text = "Pause ||"
+	
+	// SeekBar logic
+	seekBar.progress = 0
+	seekBar.max = 100
+	
+	val handler = Handler(Looper.getMainLooper())
+	val updateSeekBar = object : Runnable {
+	override fun run() {
+	mediaPlayer?.let {
+	if (it.isPlaying) {
+	val progress = (it.currentPosition * 100) / it.duration
+	seekBar.progress = progress
+	handler.postDelayed(this, 500)
+	}
+	}
+	}
+	}
+	
+	handler.post(updateSeekBar)
+	
+	seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+	override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+	if (fromUser) {
+	mediaPlayer?.seekTo((mediaPlayer!!.duration * progress) / 100)
+	}
+	}
+	
+	override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+	override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+	})
+	
+	// Handle completion based on playback mode
+	mediaPlayer?.setOnCompletionListener {
+	when (playbackMode.text.toString()) {
+	"Loop All" -> {
+	currentIndex = (currentIndex + 1) % musicList.size
+	playNextSong(context)
+	}
+	"Loop Once" -> {
+		mediaPlayer?.let {
+		it.seekTo(0)
+		it.start()
+		}
+	
+	}
+	"Shuffle" -> {
+	currentIndex = Random.nextInt(0, musicList.size)
+	val randomAudioId = musicList[currentIndex]["audioId"]?.toLongOrNull()
+	randomAudioId?.let { playMusicById(context, it) }
+	}
+	}
+	}
+	}
+	
+	fun playPreviousSong(context: Context) {
+    if (musicList.isEmpty()) return
+
+    // If no song played yet, start with the last one
+    if (currentIndex < 0) {
+		
+        currentIndex = (musicList.size - 1)
+    } else if (currentIndex > 0) {
+		
+        currentIndex--
+    } else {
+        return // Already at the first song, do nothing
+    }
+
+    val audioId = musicList[currentIndex]["audioId"]?.toLongOrNull()
+    audioId?.let { playMusicById(context, it) }
+}
+	
+	
+	
+	
+	fun playNextSong(context: Context) {
+    if (musicList.isEmpty()) return
+
+    // First time use: go to the first song
+    if (currentIndex == -1 && musicList.isNotEmpty()) {
+		
+        currentIndex = 0
+    } else if (currentIndex < musicList.size - 1) {
+		
+        currentIndex++
+    } else {
+		
+        return // already at last song
+    }
+
+    val audioId = musicList[currentIndex]["audioId"]?.toLongOrNull()
+    audioId?.let { playMusicById(context, it) }
+}
+	
+	
+	
+	
+	var currentPosition: Int = 0  // To store the position of the currently playing song
+
+fun playAndPauseMusic(context: Context) {
+if (mediaPlayer == null && musicList.isNotEmpty()) {
+if (currentIndex == -1) currentIndex = 0  // Set to first song if not set
+
+val data = musicList[currentIndex]
+val audioId = data["audioId"]?.toLongOrNull() ?: return
+val audioUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId)
+
+mediaPlayer = MediaPlayer.create(context, audioUri)
+mediaPlayer?.start()
+
+return
+}
+
+mediaPlayer?.let {
+if (it.isPlaying) {
+it.pause()
+currentPosition = it.currentPosition
+
+
+} else {
+it.seekTo(currentPosition)
+it.start()
+}
+}
+}
+
+
+
+
+
+private fun startVoiceRecognition() {
+speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+
+speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+}
+
+speechRecognizer.setRecognitionListener(object : RecognitionListener {
+override fun onReadyForSpeech(params: Bundle?) {}
+override fun onBeginningOfSpeech() {}
+override fun onRmsChanged(rmsdB: Float) {}
+override fun onBufferReceived(buffer: ByteArray?) {}
+override fun onEndOfSpeech() {}
+override fun onError(error: Int) {
+restartListening() // restart on error
+}
+
+override fun onResults(results: Bundle?) {
+val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+val spokenText = matches?.get(0) ?: "${startVoiceRecognition()}"
+    
+	 callGeminiFlash(
+	 "Here is a list of commands: [\"play music\", \"pause music\", \"play next music\", \"play previous music\",\"increase volume\",\"decrease volume\",\"mute music\",\"unmute music\"]. Now match the line: \"${spokenText}\". If it closely matches any command, return only that exact command string from the list — nothing else."
+	 ) { geminiResponse ->
+	 
+	 Handler(Looper.getMainLooper()).post {
+	 val command = geminiResponse.trim().lowercase()
+	 Toast.makeText(applicationContext, command, Toast.LENGTH_LONG).show()
+	 
+	 when (command) {
+	 "play music" -> {
+		 speak("Audio Playing")
+		 playAndPauseMusic(this@MainActivity)
+		 }
+     "pause music" -> {
+		 speak("Audio Paused")
+		 playAndPauseMusic(this@MainActivity)
+		 }
+	 "mute music" -> {
+		 speak("Audio Muted")
+			 muteandUnmute(this@MainActivity,true)
+		 }
+		 "unmute music" -> {
+		 speak("Audio Unmute")
+			 muteandUnmute(this@MainActivity,false)
+		 }
+	 "play next music" ->{ 
+		 speak("Playing Next ")
+		 playNextSong(this@MainActivity)}
+	 "play previous music" -> {
+		 speak("playing previous")
+		 playPreviousSong(this@MainActivity)}
+	 "increase volume" -> {
+		 speak("Volume increased")
+		 increaseSystemVolume(this@MainActivity, 3)}
+	 "decrease volume" -> {
+		 speak("volume decreased")
+		 decreaseSystemVolume(this@MainActivity, 3)}
+	 else -> {
+	 // tts.speak("Sorry for that, try again", TextToSpeech.QUEUE_FLUSH, null, null)
+	 }
+	 }
+	 restartListening()
+	 }
+	 }
+	 }
+
+
+
+
+override fun onPartialResults(partialResults: Bundle?) {}
+override fun onEvent(eventType: Int, params: Bundle?) {}
+})
+
+speechRecognizer.startListening(speechIntent)
+}
+
+private fun restartListening() {
+Handler(Looper.getMainLooper()).postDelayed({
+speechRecognizer.startListening(speechIntent)
+}, 1000)
+}
+
+private fun callGeminiFlash(prompt: String, callback: (String) -> Unit) {
+Thread {
+try {
+val apiKey = "AIzaSyACmk1CUecfzJ4HyPhywkwi3XugTYQgaTQ" // Replace with your actual API key
+val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey")
+val connection = url.openConnection() as HttpURLConnection
+
+connection.requestMethod = "POST"
+connection.setRequestProperty("Content-Type", "application/json")
+connection.doOutput = true
+
+val requestBody = JSONObject().apply {
+put("contents", JSONArray().apply {
+put(JSONObject().apply {
+put("parts", JSONArray().apply {
+put(JSONObject().apply {
+put("text", prompt)
+})
+})
+})
+})
+}
+
+BufferedWriter(OutputStreamWriter(connection.outputStream)).use { writer ->
+writer.write(requestBody.toString())
+writer.flush()
+}
+
+val response = if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
+val responseText = reader.readText()
+val json = JSONObject(responseText)
+val candidates = json.getJSONArray("candidates")
+val content = candidates.getJSONObject(0).getJSONObject("content")
+val parts = content.getJSONArray("parts")
+parts.getJSONObject(0).getString("text")
+}
+} else {
+"HTTP Error: ${connection.responseCode}"
+}
+
+callback(response)
+
+} catch (e: Exception) {
+callback("Error: ${e.message}")
+var errorhandler = findViewById<TextView>(R.id.errorhandler)
+errorhandler.text = "${e.message}"
+}
+}.start()
+}
+
+override fun onDestroy() {
+super.onDestroy()
+speechRecognizer.destroy()
+}
+
+
+
+
+
+
+
+
+
+	
+}
