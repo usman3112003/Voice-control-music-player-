@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+android:orientation="vertical"
+android:layout_width="match_parent"
+android:layout_height="match_parent">
+
+<LinearLayout
+	android:id="@+id/header"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:orientation="vertical"
+	android:gravity="center">
+	
+	<TextView 
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text ="Control your Musics"
+		android:textSize="20sp"/>
+	
+	<ImageButton
+            android:id="@+id/toggleButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_margin="16dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Toggle Menu"
+            android:tint="@android:color/black"
+            android:visibility="visible" />
+	
+	
+	
+   </LinearLayout>
+	
+	
+<!-- Scrollable Content -->
+<ScrollView
+android:layout_width="match_parent"
+android:layout_height="0dp"
+android:layout_weight="1"
+android:padding="16dp"
+android:background="#FAFAFA">
+
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="vertical"
+android:gravity="center_horizontal"
+android:padding="8dp">
+
+<LinearLayout
+android:id="@+id/musicListLayout"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="vertical"
+android:padding="8dp"
+android:background="#EEEEEE"
+android:layout_marginBottom="12dp" />
+
+<EditText
+android:id="@+id/queryData"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:hint="Input music name or audio title..."
+android:padding="12dp"
+android:background="@android:drawable/editbox_background_normal"
+android:textColor="#000"
+android:textSize="16sp"
+android:layout_marginBottom="12dp" />
+<Button
+android:id="@+id/retrieveData"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:text="Play"
+android:layout_marginBottom="16dp" />
+</LinearLayout>
+</ScrollView>
+<!-- Playing Status Bar -->
+<LinearLayout
+android:id="@+id/playingStatus"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="vertical"
+android:padding="12dp"
+android:background="#222222"
+android:gravity="center_horizontal"
+android:visibility="gone">
+
+<SeekBar
+    android:id="@+id/seekBar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:max="100" />
+	
+
+<TextView
+	android:id="@+id/auidoTit"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:text=""
+	android:visibility="gone"
+	android:textColor="#FFFFFF"
+	/>
+
+
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="horizontal"
+android:gravity="center"
+android:layout_marginBottom="8dp">
+
+<Button
+android:id="@+id/previousBtn"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="◀ Previous"
+android:layout_margin="4dp" />
+
+<Button
+android:id="@+id/pauseBtn"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Pause ||"
+android:layout_margin="4dp" />
+
+<Button
+android:id="@+id/nextBtn"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Next ▶"
+android:layout_margin="4dp" />
+
+<Button
+	android:id="@+id/playbackMode"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:text="Loop All"
+	/>
+	
+</LinearLayout>
+
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="horizontal"
+android:gravity="center"
+android:layout_marginBottom="12dp">
+
+<Button
+android:id="@+id/downVol"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="🔉 Volume -"
+android:layout_margin="4dp" />
+
+<Button
+android:id="@+id/upVol"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="🔊 Volume +"
+android:layout_margin="4dp" />
+
+<Button
+android:id="@+id/muteunmute"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Mute"
+android:layout_margin="4dp" />
+
+</LinearLayout>
+
+
+</LinearLayout>
+<TextView
+	android:id="@+id/errorhandler"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:text="Erroo handler"
+	android:visibility="gone"
+	/>
+</LinearLayout>
