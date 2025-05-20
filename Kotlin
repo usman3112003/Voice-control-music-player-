@@ -41,7 +41,7 @@ class MainActivity : Activity() {
     private var mediaPlayer: MediaPlayer? = null
 	var currentVolume = 0.5f  // volume
     private val musicList = mutableListOf<Map<String, String>>()
-	private var currentIndex = -1
+	private var  currentIndex = -1
 	
 	private var command = ""
 	
@@ -146,7 +146,7 @@ val downVol = findViewById<Button>(R.id.downVol)
 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
 requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), RECORD_AUDIO_REQUEST_CODE)
 } else {
-startVoiceRecognition()
+listenAndHandleCommands()
 }
 
 	initCurrentVolume(this)
@@ -208,7 +208,7 @@ startVoiceRecognition()
 	
 
     private fun showMusicList(context: Context, musicLayout: LinearLayout) {
-		
+		var index = 0
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE
@@ -245,13 +245,18 @@ startVoiceRecognition()
                 titleView.text = title
                 titleView.textSize = 16f
                 titleView.setPadding(16, 16, 16, 16)
+				
+				var currentindex = index
 
                 titleView.setOnClickListener {
                     playMusicById(context, audioId)
 					
+					currentIndex = currentindex
+					
                 }
 
                 musicLayout.addView(titleView)
+				index++
             }
         }
     }
@@ -439,145 +444,126 @@ it.start()
 
 
 
-private fun startVoiceRecognition() {
-speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
-
-speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+private fun listenAndHandleCommands() {
+val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
 putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
 }
 
-speechRecognizer.setRecognitionListener(object : RecognitionListener {
-override fun onReadyForSpeech(params: Bundle?) {}
-override fun onBeginningOfSpeech() {}
-override fun onRmsChanged(rmsdB: Float) {}
-override fun onBufferReceived(buffer: ByteArray?) {}
-override fun onEndOfSpeech() {}
-override fun onError(error: Int) {
-restartListening() // restart on error
-}
-
+recognizer.setRecognitionListener(object : RecognitionListener {
 override fun onResults(results: Bundle?) {
 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-val spokenText = matches?.get(0) ?: "${startVoiceRecognition()}"
-    
-	 callGeminiFlash(
-	 "Here is a list of commands: [\"play music\", \"pause music\", \"play next music\", \"play previous music\",\"increase volume\",\"decrease volume\",\"mute music\",\"unmute music\"]. Now match the line: \"${spokenText}\". If it closely matches any command, return only that exact command string from the list — nothing else."
-	 ) { geminiResponse ->
-	 
-	 Handler(Looper.getMainLooper()).post {
-	 val command = geminiResponse.trim().lowercase()
-	 Toast.makeText(applicationContext, command, Toast.LENGTH_LONG).show()
-	 
-	 when (command) {
-	 "play music" -> {
-		 speak("Audio Playing")
-		 playAndPauseMusic(this@MainActivity)
-		 }
-     "pause music" -> {
-		 speak("Audio Paused")
-		 playAndPauseMusic(this@MainActivity)
-		 }
-	 "mute music" -> {
-		 speak("Audio Muted")
-			 muteandUnmute(this@MainActivity,true)
-		 }
-		 "unmute music" -> {
-		 speak("Audio Unmute")
-			 muteandUnmute(this@MainActivity,false)
-		 }
-	 "play next music" ->{ 
-		 speak("Playing Next ")
-		 playNextSong(this@MainActivity)}
-	 "play previous music" -> {
-		 speak("playing previous")
-		 playPreviousSong(this@MainActivity)}
-	 "increase volume" -> {
-		 speak("Volume increased")
-		 increaseSystemVolume(this@MainActivity, 3)}
-	 "decrease volume" -> {
-		 speak("volume decreased")
-		 decreaseSystemVolume(this@MainActivity, 3)}
-	 else -> {
-	 // tts.speak("Sorry for that, try again", TextToSpeech.QUEUE_FLUSH, null, null)
-	 }
-	 }
-	 restartListening()
-	 }
-	 }
-	 }
+val spoken = matches?.get(0)?.lowercase()?.trim() ?: ""
+val commands = listOf(
+"play music", "pause music", "play next music", "play previous music",
+"increase volume", "decrease volume", "mute music", "unmute music"
+)
 
+val prompt = """
+Match the command: "$spoken" to one of these: $commands.
+If it’s close, return only the best matching command from the list — nothing else.
+""".trimIndent()
 
-
-
-override fun onPartialResults(partialResults: Bundle?) {}
-override fun onEvent(eventType: Int, params: Bundle?) {}
-})
-
-speechRecognizer.startListening(speechIntent)
-}
-
-private fun restartListening() {
-Handler(Looper.getMainLooper()).postDelayed({
-speechRecognizer.startListening(speechIntent)
-}, 1000)
-}
-
-private fun callGeminiFlash(prompt: String, callback: (String) -> Unit) {
 Thread {
 try {
-val apiKey = "AIzaSyACmk1CUecfzJ4HyPhywkwi3XugTYQgaTQ" // Replace with your actual API key
-val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey")
-val connection = url.openConnection() as HttpURLConnection
+val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyACmk1CUecfzJ4HyPhywkwi3XugTYQgaTQ")
+val conn = url.openConnection() as HttpURLConnection
+conn.requestMethod = "POST"
+conn.setRequestProperty("Content-Type", "application/json")
+conn.doOutput = true
 
-connection.requestMethod = "POST"
-connection.setRequestProperty("Content-Type", "application/json")
-connection.doOutput = true
-
-val requestBody = JSONObject().apply {
-put("contents", JSONArray().apply {
-put(JSONObject().apply {
-put("parts", JSONArray().apply {
-put(JSONObject().apply {
-put("text", prompt)
-})
-})
-})
-})
+val request = JSONObject().apply {
+put("contents", JSONArray().put(
+JSONObject().put("parts", JSONArray().put(
+JSONObject().put("text", prompt)
+))
+))
 }
 
-BufferedWriter(OutputStreamWriter(connection.outputStream)).use { writer ->
-writer.write(requestBody.toString())
-writer.flush()
-}
+conn.outputStream.bufferedWriter().use { it.write(request.toString()) }
 
-val response = if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
-val responseText = reader.readText()
+val responseText = conn.inputStream.bufferedReader().use { it.readText() }
 val json = JSONObject(responseText)
-val candidates = json.getJSONArray("candidates")
-val content = candidates.getJSONObject(0).getJSONObject("content")
-val parts = content.getJSONArray("parts")
-parts.getJSONObject(0).getString("text")
-}
-} else {
-"HTTP Error: ${connection.responseCode}"
-}
+val command = json.getJSONArray("candidates")
+.getJSONObject(0)
+.getJSONObject("content")
+.getJSONArray("parts")
+.getJSONObject(0)
+.getString("text")
+.lowercase().trim()
 
-callback(response)
+runOnUiThread {
+handleCommand(command)
+listenAndHandleCommands()
+}
 
 } catch (e: Exception) {
-callback("Error: ${e.message}")
-var errorhandler = findViewById<TextView>(R.id.errorhandler)
-errorhandler.text = "${e.message}"
+// Offline fallback
+val fallback = commands.firstOrNull { spoken.contains(it.split(" ")[0]) } ?: "unknown"
+runOnUiThread {
+handleCommand(fallback)
+findViewById<TextView>(R.id.errorhandler)?.text = "Offline Mode: ${e.message}"
+listenAndHandleCommands()
+}
 }
 }.start()
 }
 
-override fun onDestroy() {
-super.onDestroy()
-speechRecognizer.destroy()
+override fun onError(error: Int) {
+Handler(Looper.getMainLooper()).postDelayed({ recognizer.startListening(intent) }, 1000)
 }
+
+override fun onReadyForSpeech(p0: Bundle?) {}
+override fun onBeginningOfSpeech() {}
+override fun onRmsChanged(p0: Float) {}
+override fun onBufferReceived(p0: ByteArray?) {}
+override fun onEndOfSpeech() {}
+override fun onPartialResults(p0: Bundle?) {}
+override fun onEvent(p0: Int, p1: Bundle?) {}
+})
+
+recognizer.startListening(intent)
+}
+
+
+private fun handleCommand(cmd: String) {
+    when (cmd) {
+        "play music", "pause music" -> {
+            speak("Audio Toggled")
+            playAndPauseMusic(this)
+        }
+        "mute music" -> {
+            speak("Audio Muted")
+            muteandUnmute(this, true)
+        }
+        "unmute music" -> {
+            speak("Audio Unmuted")
+            muteandUnmute(this, false)
+        }
+        "play next music" -> {
+            speak("Playing Next")
+            playNextSong(this)
+        }
+        "play previous music" -> {
+            speak("Playing Previous")
+            playPreviousSong(this)
+        }
+        "increase volume" -> {
+            speak("Volume Increased")
+            increaseSystemVolume(this, 3)
+        }
+        "decrease volume" -> {
+            speak("Volume Decreased")
+            decreaseSystemVolume(this, 3)
+        }
+        else -> {
+            speak("Sorry, I didn't understand")
+        }
+    }
+}
+
+
 
 
 
