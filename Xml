@@ -6,34 +6,234 @@ android:orientation="vertical"
 android:layout_width="match_parent"
 android:layout_height="match_parent">
 
+
+<!-- This is header -->
+
 <LinearLayout
-	android:id="@+id/header"
+android:id="@+id/header"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="horizontal"
+android:padding="12dp"
+android:gravity="center_vertical"
+android:background="#E0F7FA">
+
+<ImageButton
+android:id="@+id/toggleButton"
+android:layout_width="40dp"
+android:layout_height="40dp"
+android:background="?android:selectableItemBackgroundBorderless"
+android:src="@android:drawable/ic_menu_sort_by_size"
+android:contentDescription="Toggle Menu"
+android:tint="@android:color/black"
+android:layout_marginEnd="12dp" />
+
+<TextView
+android:id="@+id/headerTitle"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Control Your Music"
+android:textSize="20sp"
+android:textColor="#000000"
+android:textStyle="bold" />
+
+<ImageButton
+android:id="@+id/searchIcon"
+android:layout_width="40dp"
+android:layout_height="40dp"
+android:background="?android:selectableItemBackgroundBorderless"
+android:src="@android:drawable/ic_menu_search"
+android:contentDescription="Search"
+android:tint="@android:color/black"
+android:layout_marginEnd="12dp" />
+
+
+
+</LinearLayout>
+
+<LinearLayout
+android:id="@+id/searchBar"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="horizontal"
+android:background="@android:drawable/edit_text"
+android:padding="4dp"
+android:gravity="center_vertical"
+android:visibility="gone">
+
+<!-- Back Button -->
+<ImageButton
+android:id="@+id/headerBackButton"
+android:layout_width="24dp"
+android:layout_height="24dp"
+android:background="@android:color/transparent"
+android:src="@android:drawable/ic_menu_revert"
+android:contentDescription="Back"
+android:tint="@android:color/darker_gray"
+android:padding="4dp" />
+
+<!-- EditText -->
+<EditText
+android:id="@+id/queryData"
+android:layout_width="0dp"
+android:layout_height="match_parent"
+android:layout_weight="1"
+android:background="@android:color/transparent"
+android:hint="Input music name or audio title"
+android:paddingStart="8dp"
+android:paddingEnd="8dp"
+android:inputType="text" />
+
+<!-- Play Button -->
+<Button
+android:id="@+id/retrieveData"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Play"
+android:paddingStart="12dp"
+android:paddingEnd="12dp"
+android:minHeight="40dp"
+android:minWidth="60dp" />
+</LinearLayout>
+
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="horizontal">
+
+<Button
+android:id="@+id/musicList"
+android:layout_width="0dp"
+android:layout_height="wrap_content"
+android:layout_weight="1"
+android:text="Music List" />
+
+<Button
+android:id="@+id/playList"
+android:layout_width="0dp"
+android:layout_height="wrap_content"
+android:layout_weight="1"
+android:text="Play List" />
+</LinearLayout>
+
+<LinearLayout
+	android:id="@+id/addPlayList"
 	android:layout_width="match_parent"
 	android:layout_height="wrap_content"
 	android:orientation="vertical"
-	android:gravity="center">
+	android:gravity="center"
+	android:visibility="gone">
 	
-	<TextView 
-		android:layout_width="wrap_content"
+    <Button
+		android:id="@+id/addNewPlayListBtn"
+		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:text ="Control your Musics"
-		android:textSize="20sp"/>
+		android:text="+"
+		android:textSize="24dp"/>
+		
+		<LinearLayout
+    android:id="@+id/makeNewPlaylist"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_horizontal"
+	android:visibility="gone">
+
+    <!-- EditText -->
+    <EditText
+        android:id="@+id/newPlayListName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="Enter text here"
+        android:padding="2dp"
+        android:background="@android:drawable/edit_text"
+        android:inputType="text" />
+
+    <!-- Vertical buttons on the right -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginStart="8dp"
+        android:gravity="bottom">
+
+        <!-- Cancel Button -->
+        <Button
+            android:id="@+id/cancelCreateButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:background="#FFCDD2"
+            android:textColor="#000000"
+            android:padding="1dp" />
+
+        <!-- Add Button -->
+        <Button
+            android:id="@+id/addCreateButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add"
+            android:background="#C8E6C9"
+            android:textColor="#000000"
+            android:padding="1dp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
 	
-	<ImageButton
-            android:id="@+id/toggleButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_margin="16dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="Toggle Menu"
-            android:tint="@android:color/black"
-            android:visibility="visible" />
+</LinearLayout>
+	<LinearLayout
+			android:id="@+id/allPlayLists"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			android:gravity="center"/>
+			
+			<LinearLayout
+			android:id="@+id/addMusicIcon"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			android:gravity="center"
+			android:visibility="gone"/>
+			
+			<ScrollView
+android:layout_width="match_parent"
+android:layout_height="0dp"
+android:layout_weight="1"
+android:padding="4dp"
+android:background="#FAFAFA">
+			
+		<LinearLayout
+			android:id="@+id/allPlayListMusics"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			android:gravity="center"/>
+			
+			</ScrollView>
+</LinearLayout>
+
+
+
+
+
+<!-- This is toggle section -->
+<LinearLayout
+    android:id="@+id/toggleMenu"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:visibility="gone"
+    android:background="#FFF8E1">
 	
-	
-	
-   </LinearLayout>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="This is your hidden menu!"
+        android:textColor="#333333"/>
+</LinearLayout>
 	
 	
 <!-- Scrollable Content -->
@@ -41,7 +241,7 @@ android:layout_height="match_parent">
 android:layout_width="match_parent"
 android:layout_height="0dp"
 android:layout_weight="1"
-android:padding="16dp"
+android:padding="4dp"
 android:background="#FAFAFA">
 
 <LinearLayout
@@ -49,33 +249,18 @@ android:layout_width="match_parent"
 android:layout_height="wrap_content"
 android:orientation="vertical"
 android:gravity="center_horizontal"
-android:padding="8dp">
+android:padding="2dp">
 
 <LinearLayout
 android:id="@+id/musicListLayout"
 android:layout_width="match_parent"
 android:layout_height="wrap_content"
 android:orientation="vertical"
-android:padding="8dp"
+android:padding="4dp"
 android:background="#EEEEEE"
 android:layout_marginBottom="12dp" />
 
-<EditText
-android:id="@+id/queryData"
-android:layout_width="match_parent"
-android:layout_height="wrap_content"
-android:hint="Input music name or audio title..."
-android:padding="12dp"
-android:background="@android:drawable/editbox_background_normal"
-android:textColor="#000"
-android:textSize="16sp"
-android:layout_marginBottom="12dp" />
-<Button
-android:id="@+id/retrieveData"
-android:layout_width="match_parent"
-android:layout_height="wrap_content"
-android:text="Play"
-android:layout_marginBottom="16dp" />
+
 </LinearLayout>
 </ScrollView>
 <!-- Playing Status Bar -->
