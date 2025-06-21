@@ -33,6 +33,13 @@ import android.os.*
 import android.speech.RecognitionListener
 import android.media.AudioManager
 import android.widget.SeekBar
+import android.widget.ImageButton
+import android.graphics.Color
+import android.view.Gravity
+import android.view.ViewGroup
+import android.widget.ScrollView
+import android.widget.LinearLayout.LayoutParams
+import android.content.ContentValues
 
 
 
@@ -40,7 +47,9 @@ class MainActivity : Activity() {
 
     private var mediaPlayer: MediaPlayer? = null
 	var currentVolume = 0.5f  // volume
+	
     private val musicList = mutableListOf<Map<String, String>>()
+	
 	private var  currentIndex = -1
 	
 	private var command = ""
@@ -52,11 +61,11 @@ class MainActivity : Activity() {
 	
 	
 	
-	
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+		
 
         val musicListLayout = findViewById<LinearLayout>(R.id.musicListLayout)
         val searchEditText = findViewById<EditText>(R.id.queryData)
@@ -95,18 +104,14 @@ nextBtn.setOnClickListener {
     playNextSong(this)  // Call the playNextSong function
 }
 
-// In your Activity or Fragment
+
 
 // Find the Play/Pause button
 val pauseBtn = findViewById<Button>(R.id.pauseBtn)
 
 // Set OnClickListener for the Play/Pause button
 pauseBtn.setOnClickListener {
-	if (pauseBtn.text.toString() == "pause"){
-		pauseBtn.text = "play"
-		}else{
-			pauseBtn.text = "pause"
-		}
+	
     playAndPauseMusic(this)  // Call the playAndPauseMusic function to play or pause
 }
 
@@ -141,6 +146,109 @@ val downVol = findViewById<Button>(R.id.downVol)
 				muteandUnmute(this,false)
 				}
 	}
+	
+	
+	// toggle button
+	val toggleButton = findViewById<ImageButton>(R.id.toggleButton)
+val toggleMenu = findViewById<LinearLayout>(R.id.toggleMenu)
+
+toggleButton.setOnClickListener {
+    if (toggleMenu.visibility == LinearLayout.VISIBLE) {
+        toggleMenu.visibility = LinearLayout.GONE
+    } else {
+        toggleMenu.visibility = LinearLayout.VISIBLE
+    }
+}
+
+
+// Home page main 2 buttons 
+val musicList = findViewById<Button>(R.id.musicList)
+val playList = findViewById<Button>(R.id.playList)
+val allPlayLists = findViewById<LinearLayout>(R.id.allPlayLists)
+val addNewPlayListBtn = findViewById<Button>(R.id.addNewPlayListBtn)
+
+val addPlayList = findViewById<LinearLayout>(R.id.addPlayList)
+    musicList.setOnClickListener{
+	         musicListLayout.visibility = View.VISIBLE
+			 addPlayList.visibility = View.GONE
+	}
+	
+	playList.setOnClickListener{
+	    	 getPlayListNameandShow()
+			 addNewPlayListBtn.visibility = View.VISIBLE
+			 allPlayLists.visibility = View.VISIBLE
+	         musicListLayout.visibility = View.GONE
+			 addPlayList.visibility = View.VISIBLE
+			 
+	
+	}
+	
+		
+		
+	
+	// search Header icon
+	val searchIcon = findViewById<ImageButton>(R.id.searchIcon)
+	
+	val header = findViewById<LinearLayout>(R.id.header)
+	
+	val searchBar = findViewById<LinearLayout>(R.id.searchBar)
+	
+	searchIcon.setOnClickListener{
+		header.visibility = View.GONE
+		searchBar.visibility = View.VISIBLE
+	    
+		}
+	
+	// back from searching 	
+	val headerBackButton = findViewById<ImageButton>(R.id.headerBackButton)
+	headerBackButton.setOnClickListener{
+		header.visibility = View.VISIBLE
+		searchBar.visibility = View.GONE
+		
+		}
+		
+	// add new Playlist Button	
+	// alreafy declared above val addNewPlayListBtn = findViewById<Button>(R.id.addNewPlayListBtn)
+	val makeNewPlaylist = findViewById<LinearLayout>(R.id.makeNewPlaylist)
+	
+	addNewPlayListBtn.setOnClickListener{
+		
+		makeNewPlaylist.visibility = View.VISIBLE
+		
+		}
+		
+	// cancel playlist creation button	
+	val cancelCreateButton = findViewById<Button>(R.id.cancelCreateButton)
+	cancelCreateButton.setOnClickListener{
+		makeNewPlaylist.visibility = View.GONE
+		
+		}
+		
+	// create new playlist button	
+	val addCreateButton = findViewById<Button>(R.id.addCreateButton)
+	val newPlayListName = findViewById<EditText>(R.id.newPlayListName)
+	
+	addCreateButton.setOnClickListener{
+		if(newPlayListName.text.toString() == ""){
+			Toast.makeText(this,"Please fill the blank field",Toast.LENGTH_LONG).show()
+		}else{
+		savePlayListName(newPlayListName.text.toString())
+		makeNewPlaylist.visibility = View.GONE
+		
+		
+		
+		// call this fun to show latest nane
+		getPlayListNameandShow()
+		}
+				
+	}
+	
+	
+	
+	// show the playList name to ui
+	getPlayListNameandShow()
+		
+
 
 // Request microphone permission
 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -154,7 +262,32 @@ listenAndHandleCommands()
 	
     }
 	
+	override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    if (requestCode == 101 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        Toast.makeText(this, "Permission granted. Now try delete again.", Toast.LENGTH_SHORT).show()
+    } else {
+        Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+    }
+}
+
+override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    if (requestCode == 102) {
+        if (resultCode == RESULT_OK) {
+            Toast.makeText(this, "Audio deleted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Delete canceled", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
 	
+	
+	fun hasAudioPermission(): Boolean {
+	return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+	}
+	
+	fun requestAudioPermission() {
+	requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 101)
+	}
 	
 	private fun speak(text: String) {
     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
@@ -365,11 +498,33 @@ listenAndHandleCommands()
 	randomAudioId?.let { playMusicById(context, it) }
 	}
 	}
+	
+	savePlayedSongQty(context,audioId.toString(),1)
 	}
 	}
 	
+	// Array for playlist songs
+	val playListSongIndexArray = mutableListOf<Int>()
+	var enterPlayList = false
+	var playListIndex = -1
+	
 	fun playPreviousSong(context: Context) {
     if (musicList.isEmpty()) return
+	
+	
+	/*
+	if (playListSongIndexArray.isNotEmpty()){
+		currentIndex = playListSongIndexArray.size
+		
+		
+		val audioId = musicList[currentIndex]["audioId"]?.toLongOrNull()
+    audioId?.let { playMusicById(context, it) }
+		
+		}
+		// break code 
+		return
+		
+		*/
 
     // If no song played yet, start with the last one
     if (currentIndex < 0) {
@@ -391,6 +546,19 @@ listenAndHandleCommands()
 	
 	fun playNextSong(context: Context) {
     if (musicList.isEmpty()) return
+	/*
+	if(playListIndex == -1){
+		playListIndex = 0
+		currentIndex = playListIndex
+		}else if(playListSongIndexArray.size<playListIndex){
+			playListIndex++
+			currentIndex = playListIndex
+			}
+			
+		else{
+		println("Run second block")	
+		*/
+		
 
     // First time use: go to the first song
     if (currentIndex == -1 && musicList.isNotEmpty()) {
@@ -399,12 +567,10 @@ listenAndHandleCommands()
     } else if (currentIndex < musicList.size - 1) {
 		
         currentIndex++
-    } else {
-		
-        return // already at last song
-    }
+    } 
+// 	}
 
-    val audioId = musicList[currentIndex]["audioId"]?.toLongOrNull()
+    var audioId = musicList[currentIndex]["audioId"]?.toLongOrNull()
     audioId?.let { playMusicById(context, it) }
 }
 	
@@ -414,6 +580,14 @@ listenAndHandleCommands()
 	var currentPosition: Int = 0  // To store the position of the currently playing song
 
 fun playAndPauseMusic(context: Context) {
+	// Find the Play/Pause button
+val pauseBtn = findViewById<Button>(R.id.pauseBtn)
+if (pauseBtn.text.toString() == "Pause ||"){
+		pauseBtn.text = "play ▶"
+		}else{
+			pauseBtn.text = "Pause ||"
+		}
+
 if (mediaPlayer == null && musicList.isNotEmpty()) {
 if (currentIndex == -1) currentIndex = 0  // Set to first song if not set
 
@@ -562,6 +736,840 @@ private fun handleCommand(cmd: String) {
         }
     }
 }
+
+
+var playName = ""
+
+fun getPlayListNameandShow() {
+val allPlayLists = findViewById<LinearLayout>(R.id.allPlayLists)
+val addMusicIcon = findViewById<LinearLayout>(R.id.addMusicIcon)
+val allPlayListMusics = findViewById<LinearLayout>(R.id.allPlayListMusics)
+val addNewPlayListBtn = findViewById<Button>(R.id.addNewPlayListBtn)
+allPlayLists.removeAllViews()
+allPlayListMusics.removeAllViews()
+
+val file = File(filesDir, "playListName")
+if (!file.exists()) return
+
+val list = JSONArray(FileReader(file).readText())
+
+var activePlayLayout: LinearLayout? = null
+var activeParentLayout: LinearLayout? = null
+
+for (i in 0 until list.length()) {
+val linearLayout = LinearLayout(this).apply {
+orientation = LinearLayout.HORIZONTAL
+setPadding(16, 16, 16, 16)
+}
+
+val colontextView = TextView(this).apply {
+text = "="
+textSize = 18f
+setTextColor(Color.WHITE)
+setPadding(20, 20, 20, 20)
+setBackgroundColor(Color.parseColor("#3F51B5"))
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.WRAP_CONTENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(16, 16, 16, 16)
+}
+}
+
+val playListName = list.getString(i)
+
+val textView = TextView(this).apply {
+text = playListName
+textSize = 18f
+setTextColor(Color.WHITE)
+setPadding(20, 20, 20, 20)
+setBackgroundColor(Color.parseColor("#3F51B5"))
+layoutParams = LinearLayout.LayoutParams(
+0,
+LinearLayout.LayoutParams.WRAP_CONTENT,
+1f
+).apply {
+setMargins(16, 16, 16, 16)
+}
+gravity = Gravity.CENTER
+}
+
+colontextView.setOnClickListener {
+activeParentLayout?.removeView(activePlayLayout)
+
+val playlinearLayout = LinearLayout(this).apply {
+orientation = LinearLayout.VERTICAL
+setPadding(16, 16, 16, 16)
+}
+
+val deleteTextView = TextView(this).apply {
+text = "Delete"
+textSize = 18f
+setTextColor(Color.WHITE)
+setBackgroundColor(Color.parseColor("#3F51B5"))
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.WRAP_CONTENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+)
+}
+
+deleteTextView.setOnClickListener {
+deletePlayListName(playListName)
+getPlayListNameandShow()
+}
+
+val changeNameTextView = TextView(this).apply {
+text = "Change Name"
+textSize = 18f
+setTextColor(Color.WHITE)
+setBackgroundColor(Color.parseColor("#3F51B5"))
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.WRAP_CONTENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+)
+}
+
+changeNameTextView.setOnClickListener {
+linearLayout.removeView(textView)
+
+val editLayout = LinearLayout(this).apply {
+orientation = LinearLayout.VERTICAL
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+)
+}
+
+val editText = EditText(this).apply {
+setText(playListName)
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 0, 0, 10)
+}
+setTextColor(Color.WHITE)
+setBackgroundColor(Color.DKGRAY)
+}
+
+val buttonLayout = LinearLayout(this).apply {
+orientation = LinearLayout.HORIZONTAL
+gravity = Gravity.END
+}
+
+val tickButton = Button(this).apply {
+text = "✔"
+textSize = 20f
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.WRAP_CONTENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply { setMargins(8, 0, 8, 0) }
+}
+
+val crossButton = Button(this).apply {
+text = "✖"
+textSize = 20f
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.WRAP_CONTENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply { setMargins(8, 0, 8, 0) }
+}
+
+buttonLayout.addView(tickButton)
+buttonLayout.addView(crossButton)
+editLayout.addView(editText)
+editLayout.addView(buttonLayout)
+linearLayout.addView(editLayout, 0)
+
+tickButton.setOnClickListener {
+val newName = editText.text.toString().trim()
+if (newName.isNotEmpty()) {
+renamePlayListFile(playListName, newName)
+getPlayListNameandShow()
+} else {
+Toast.makeText(this, "Name cannot be empty", Toast.LENGTH_SHORT).show()
+}
+}
+
+crossButton.setOnClickListener {
+linearLayout.removeView(editLayout)
+linearLayout.addView(textView, 0)
+}
+}
+
+playlinearLayout.addView(deleteTextView)
+playlinearLayout.addView(changeNameTextView)
+linearLayout.addView(playlinearLayout)
+
+activePlayLayout = playlinearLayout
+activeParentLayout = linearLayout
+}
+
+
+val addSongIconTextView = TextView(this).apply {
+text = "Add new Song"
+textSize = 16f
+setTextColor(Color.BLUE)
+setPadding(20, 10, 20, 10)
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(32, 16, 32, 16)
+}
+gravity = Gravity.CENTER
+}
+
+
+
+
+textView.setOnClickListener {
+	
+	playName = playListName
+allPlayLists.visibility = View.GONE
+addNewPlayListBtn.visibility = View.GONE
+ allPlayListMusics.removeAllViews()
+ 
+ 
+		
+addSongIconTextView.visibility = View.VISIBLE
+
+
+
+
+addSongIconTextView.setOnClickListener{
+	addSongIconTextView.visibility = View.GONE
+		
+		val titleArray = musicList.map { it["title"] ?: "Unknown" }.toTypedArray()
+		
+		val selectionLayout = createMultiSelectBar(this,playListName)
+		allPlayListMusics.addView(selectionLayout)
+	}
+
+
+
+
+
+
+val titleArray = musicList.map { it["title"] ?: "Unknown" }.toTypedArray()
+	displayPlayListMusics(playName)
+	
+}
+addMusicIcon.addView(addSongIconTextView)
+linearLayout.addView(textView)
+linearLayout.addView(colontextView)
+allPlayLists.addView(linearLayout)
+}
+}
+
+fun savePlayListName(name: String) {
+val file = File(filesDir, "playListName")
+val jsonArray = if (file.exists()) {
+JSONArray(FileReader(file).readText())
+} else {
+JSONArray()
+}
+
+jsonArray.put(name)
+
+FileWriter(file).use {
+it.write(jsonArray.toString())
+}
+
+Toast.makeText(this, "Playlist saved", Toast.LENGTH_SHORT).show()
+}
+
+
+fun deletePlayListName(name: String) {
+val file = File(filesDir, "playListName")
+if (!file.exists()) {
+Toast.makeText(this, "File not found", Toast.LENGTH_SHORT).show()
+return
+}
+
+val list = JSONArray(FileReader(file).readText())
+var found = false
+
+for (i in 0 until list.length()) {
+if (list.getString(i) == name) {
+list.remove(i)
+found = true
+break
+}
+}
+
+if (found) {
+FileWriter(file).use { it.write(list.toString()) }
+Toast.makeText(this, "$name Deleted", Toast.LENGTH_SHORT).show()
+} else {
+Toast.makeText(this, "No Name matched", Toast.LENGTH_SHORT).show()
+}
+}
+
+
+
+	fun renamePlayListFile(oldName: String, newName: String) {
+    val file = File(filesDir, "playListName")
+    val array = JSONArray(FileReader(file).readText())
+    val newArray = JSONArray()
+
+    for (i in 0 until array.length()) {
+        if (array.getString(i) == oldName) newArray.put(newName)
+        else newArray.put(array.getString(i))
+    }
+
+    file.writeText(newArray.toString())
+
+    val oldFile = File(filesDir, oldName)
+    val newFile = File(filesDir, newName)
+    if (oldFile.exists()) oldFile.renameTo(newFile)
+}
+
+
+     
+fun getTitleFromAudioId(context: Context, audioId: Long): String {
+val item = musicList.find {
+(it["audioId"] as? String)?.toLongOrNull() == audioId
+}
+return item?.get("title") as? String ?: "Unknown Title"
+}
+
+
+
+    // Global variable (place this outside any function)
+	val selectedAudioId = mutableSetOf<Long>()
+	
+	fun createMultiSelectBar(context: Context, fileName: String): LinearLayout {
+	
+	selectedAudioId.clear()
+	
+	// Sort musicList by title
+	musicList.sortBy { it["title"]?.toString() }
+	
+	// Safely extract audioIds as Long
+	val audioIdArray = musicList.mapNotNull {
+	(it["audioId"] as? String)?.toLongOrNull()
+	}.toTypedArray()
+	
+	val mainLayout = LinearLayout(context).apply {
+	orientation = LinearLayout.VERTICAL
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	}
+	
+	// Buttons: Add and Cancel
+	val buttonLayout = LinearLayout(context).apply {
+	orientation = LinearLayout.HORIZONTAL
+	gravity = Gravity.END
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	setPadding(10, 10, 10, 10)
+	}
+	
+	val addButton = Button(context).apply { text = "Add" }
+	val cancelButton = Button(context).apply { text = "Cancel" }
+	
+	buttonLayout.addView(addButton)
+	buttonLayout.addView(cancelButton)
+	mainLayout.addView(buttonLayout)
+	
+	// Scrollable list layout
+	val scrollView = ScrollView(context).apply {
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.MATCH_PARENT
+	)
+	}
+	
+	val listLayout = LinearLayout(context).apply {
+	orientation = LinearLayout.VERTICAL
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	}
+	
+	val textViews = mutableListOf<TextView>()
+	
+	for (id in audioIdArray) {
+	val textView = TextView(context).apply {
+	text = getTitleFromAudioId(context, id)
+	textSize = 18f
+	setPadding(20, 20, 20, 20)
+	setBackgroundColor(Color.LTGRAY)
+	setTextColor(Color.BLACK)
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	
+	setOnClickListener {
+	if (selectedAudioId.contains(id)) {
+	selectedAudioId.remove(id)
+	setBackgroundColor(Color.LTGRAY)
+	} else {
+	selectedAudioId.add(id)
+	setBackgroundColor(Color.CYAN)
+	}
+	}
+	}
+	
+	textViews.add(textView)
+	listLayout.addView(textView)
+	}
+	
+	scrollView.addView(listLayout)
+	mainLayout.addView(scrollView)
+	
+	// Button actions
+	addButton.setOnClickListener {
+	saveSelectedIdToFile(context, fileName)
+	mainLayout.removeAllViews()
+	displayPlayListMusics(fileName)
+	selectedAudioId.clear()
+	Toast.makeText(context, "Selection saved", Toast.LENGTH_SHORT).show()
+	}
+	
+	cancelButton.setOnClickListener {
+	selectedAudioId.clear()
+	displayPlayListMusics(fileName)
+	mainLayout.removeAllViews()
+	textViews.forEach { it.setBackgroundColor(Color.LTGRAY) }
+	Toast.makeText(context, "Selection cleared", Toast.LENGTH_SHORT).show()
+	}
+	
+	return mainLayout
+	}
+	
+	fun saveSelectedIdToFile(context: Context, fileName: String) {
+	try {
+	val file = File(context.filesDir, fileName)
+	val jsonArray = if (file.exists() && file.readText().isNotEmpty()) {
+	JSONArray(file.readText())
+	} else {
+	JSONArray()
+	}
+	
+	// Collect existing IDs into a set
+	val existingIds = mutableSetOf<Long>()
+	for (i in 0 until jsonArray.length()) {
+	existingIds.add(jsonArray.getLong(i))
+	}
+	
+	// Add only new audio IDs
+	for (id in selectedAudioId) {
+	if (!existingIds.contains(id)) {
+	jsonArray.put(id)
+	}
+	}
+	
+	// Save back to file
+	file.writeText(jsonArray.toString())
+	
+	Toast.makeText(context, "Id saved to $fileName", Toast.LENGTH_SHORT).show()
+	} catch (e: Exception) {
+	Toast.makeText(context, "Error saving: ${e.message}", Toast.LENGTH_LONG).show()
+	}
+	}
+	
+	
+	fun removeIdToFile(context: Context, fileName: String, requestId: Long) {
+	try {
+	val file = File(context.filesDir, fileName)
+	val jsonArray = if (file.exists() && file.readText().isNotEmpty()) {
+	JSONArray(file.readText())
+	} else {
+	JSONArray()
+	}
+	
+	for (i in 0 until jsonArray.length()) {
+	val id = jsonArray.getLong(i)
+	if (id == requestId) {
+	jsonArray.remove(i)
+	break // Stop loop since the ID is unique and now removed
+	}
+	}
+	
+	file.writeText(jsonArray.toString())
+	Toast.makeText(context, "Id removed from $fileName", Toast.LENGTH_SHORT).show()
+	} catch (e: Exception) {
+	Toast.makeText(context, "Error removing ID: ${e.message}", Toast.LENGTH_LONG).show()
+	}
+	}
+	
+	
+	
+	fun deleteAudioById(audioId: Long) {
+	val audioUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId)
+	
+	if (!hasAudioPermission()) {
+	requestAudioPermission()
+	return
+	}
+	
+	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+	try {
+	val sender = MediaStore.createDeleteRequest(contentResolver, listOf(audioUri)).intentSender
+	startIntentSenderForResult(sender, 102, null, 0, 0, 0)
+	} catch (e: Exception) {
+	Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+	}
+	} else {
+	val deleted = contentResolver.delete(audioUri, null, null)
+	Toast.makeText(this, "Deleted: $deleted", Toast.LENGTH_SHORT).show()
+	}
+	}
+	
+	
+	
+	
+	fun renameAudioFileById(context: Context, audioId: Long, newName: String): Boolean {
+    val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId)
+
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Audio.Media.DISPLAY_NAME, newName)  // New file name
+    }
+
+    return try {
+        val rowsUpdated = context.contentResolver.update(uri, contentValues, null, null)
+        rowsUpdated > 0
+    } catch (e: Exception) {
+        e.printStackTrace()
+        false
+    }
+}
+	
+	
+	
+	
+	
+	fun displaySavedTitlesFromFile(context: Context, fileName: String) {
+		playListSongIndexArray.clear()
+	try {
+	val file = File(context.filesDir, fileName)
+	if (!file.exists()) {
+	Toast.makeText(context, "No saved data found", Toast.LENGTH_SHORT).show()
+	return
+	}
+	
+	// Read and parse indices from file
+	val savedData = file.readText()
+	val indexList = savedData
+	.split(",")
+	.mapNotNull { it.trim().toIntOrNull() }
+	
+	// Convert musicList to titleArray
+	val titleArray = musicList.map { it["title"] ?: "Unknown" }.toTypedArray()
+	
+	// Create a vertical layout for displaying titles
+	val resultLayout = LinearLayout(context).apply {
+	orientation = LinearLayout.VERTICAL
+	setPadding(20, 20, 20, 20)
+	}
+	
+	// Add each matched title
+	for (index in indexList) {
+		playListSongIndexArray.add(index)
+	if (index in titleArray.indices) {
+	val titleView = TextView(context).apply {
+	text = titleArray[index]
+	textSize = 16f
+	setPadding(10, 10, 10, 10)
+	}
+	resultLayout.addView(titleView)
+	}
+	}
+	
+	// Add resultLayout to root view
+	val rootView = (context as Activity).findViewById<ViewGroup>(android.R.id.content)
+	rootView.addView(resultLayout)
+	
+	} catch (e: Exception) {
+	Toast.makeText(context, "Error loading saved titles: ${e.message}", Toast.LENGTH_LONG).show()
+	}
+	}
+	
+	
+	fun displayPlayListMusics(playName: String) {
+	val allPlayListMusics = findViewById<LinearLayout>(R.id.allPlayListMusics)
+	allPlayListMusics.removeAllViews()
+	
+	val addNewMusicsTextView = TextView(this).apply {
+	text = "Add New Musics"
+	textSize = 16f
+	setTextColor(Color.parseColor("#33B5E5"))
+	setPadding(20, 20, 20, 20)
+	paint.isUnderlineText = true
+	gravity = Gravity.CENTER
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	setOnClickListener {
+	allPlayListMusics.removeAllViews()
+	allPlayListMusics.addView(createMultiSelectBar(context, playName))
+	Toast.makeText(context, "Add New Musics Clicked", Toast.LENGTH_SHORT).show()
+	}
+	}
+	allPlayListMusics.addView(addNewMusicsTextView)
+	
+	val playListFile = File(filesDir, playName)
+	if (playListFile.exists()) {
+	val content = playListFile.readText()
+	if (content.isNotEmpty()) {
+	val songArray = JSONArray(content)
+	for (j in 0 until songArray.length()) {
+	val savedAudioId = songArray.getLong(j)
+	
+	val matchedSong = musicList.find {
+	(it["audioId"] as? String)?.toLongOrNull() == savedAudioId
+	}
+	
+	val songTitle = matchedSong?.get("title")?.toString() ?: "Unknown"
+	
+	// Outer vertical layout
+	val songRowLayout = LinearLayout(this).apply {
+	orientation = LinearLayout.VERTICAL
+	setPadding(16, 16, 16, 16)
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	).apply {
+	setMargins(16, 8, 16, 8)
+	}
+	setBackgroundColor(Color.parseColor("#F8F8F8"))
+	}
+	
+	// Main horizontal row
+	val contentRow = LinearLayout(this).apply {
+	orientation = LinearLayout.HORIZONTAL
+	gravity = Gravity.CENTER_VERTICAL
+	}
+	
+	val songTextView = TextView(this).apply {
+	text = songTitle
+	textSize = 16f
+	setTextColor(Color.BLACK)
+	layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+	setOnClickListener {
+	val audioId = matchedSong?.get("audioId")?.toString()?.toLongOrNull()
+	if (audioId != null) {
+	playMusicById(context, audioId)
+	}
+	}
+	}
+	
+	// ⋮ options button
+	val optionsButton = TextView(this).apply {
+	text = "⋮"
+	textSize = 20f
+	setPadding(20, 0, 20, 0)
+	setTextColor(Color.GRAY)
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.WRAP_CONTENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	}
+	
+	// Hidden button bar below song row
+	val buttonBar = LinearLayout(this).apply {
+	orientation = LinearLayout.HORIZONTAL
+	visibility = View.GONE
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.WRAP_CONTENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	setPadding(0, 8, 0, 0)
+	}
+	
+	val removeButton = Button(this).apply {
+	text = "Remove"
+	textSize = 14f
+	setTextColor(Color.WHITE)
+	setBackgroundColor(Color.RED)
+	}
+	
+	removeButton.setOnClickListener {
+	removeIdToFile(this, playName, savedAudioId)
+	displayPlayListMusics(playName)
+	}
+	
+	val deleteButton = Button(this).apply {
+	text = "Delete"
+	textSize = 14f
+	setTextColor(Color.WHITE)
+	setBackgroundColor(Color.parseColor("#D32F2F"))
+	}
+	
+	deleteButton.setOnClickListener {
+	deleteAudioById(savedAudioId)
+	removeIdToFile(this, playName, savedAudioId)
+	displayPlayListMusics(playName)
+	}
+	
+	val editButton = Button(this).apply {
+	text = "Edit"
+	textSize = 14f
+	setTextColor(Color.WHITE)
+	setBackgroundColor(Color.parseColor("#1976D2"))
+	}
+	
+	editButton.setOnClickListener {
+	// Replace songTextView with edit layout
+	val index = contentRow.indexOfChild(songTextView)
+	contentRow.removeView(songTextView)
+	
+	val editLayout = LinearLayout(this).apply {
+	orientation = LinearLayout.VERTICAL
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	}
+	
+	val editText = EditText(this).apply {
+	setText(songTitle)
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	}
+	
+	val buttonRow = LinearLayout(this).apply {
+	orientation = LinearLayout.HORIZONTAL
+	gravity = Gravity.END
+	layoutParams = LinearLayout.LayoutParams(
+	LinearLayout.LayoutParams.MATCH_PARENT,
+	LinearLayout.LayoutParams.WRAP_CONTENT
+	)
+	}
+	
+	val cancelButton = Button(this).apply {
+	text = "Cancel"
+	}
+	
+	val saveButton = Button(this).apply {
+	text = "Save"
+	}
+	
+	buttonRow.addView(cancelButton)
+	buttonRow.addView(saveButton)
+	
+	editLayout.addView(editText)
+	editLayout.addView(buttonRow)
+	
+	contentRow.addView(editLayout, index)
+	
+	cancelButton.setOnClickListener {
+	contentRow.removeView(editLayout)
+	contentRow.addView(songTextView, index)
+	buttonBar.visibility = View.GONE
+	}
+	
+	saveButton.setOnClickListener {
+	val newTitle = editText.text.toString().trim()
+	if (newTitle.isNotEmpty()) {
+	renameAudioFileById(this,savedAudioId, newTitle)
+	songTextView.text = newTitle
+	}
+	contentRow.removeView(editLayout)
+	contentRow.addView(songTextView, index)
+	buttonBar.visibility = View.GONE
+	Toast.makeText(this, "Title updated", Toast.LENGTH_SHORT).show()
+	// Optionally refresh list:
+	// displayPlayListMusics(playName)
+	}
+	}
+	
+	buttonBar.addView(removeButton)
+	buttonBar.addView(deleteButton)
+	buttonBar.addView(editButton)
+	
+	optionsButton.setOnClickListener {
+	buttonBar.visibility = if (buttonBar.visibility == View.GONE) View.VISIBLE else View.GONE
+	}
+	
+	contentRow.addView(songTextView)
+	contentRow.addView(optionsButton)
+	
+	songRowLayout.addView(contentRow)
+	songRowLayout.addView(buttonBar)
+	
+	allPlayListMusics.addView(songRowLayout)
+	}
+	}
+	}
+	}
+
+
+     fun savePlayedSongQty(context: Context, id: String, playedTime: Int) {
+	 try {
+	 val file = File(context.filesDir, "playedSong.json")
+	 val jsonArray = if (file.exists() && file.readText().isNotEmpty()) {
+	 JSONArray(file.readText())
+	 } else {
+	 JSONArray()
+	 }
+	 
+	 // Create a proper JSON object
+	 val playedObject = JSONObject().apply {
+	 put("id", id)
+	 put("playedTime", playedTime)
+	 }
+	 
+	 jsonArray.put(playedObject)
+	 
+	 // Save updated data
+	 file.writeText(jsonArray.toString())
+	 
+	 Toast.makeText(context, "Data saved to ${file.name}", Toast.LENGTH_SHORT).show()
+	 } catch (e: Exception) {
+	 Toast.makeText(context, "Error saving: ${e.message}", Toast.LENGTH_LONG).show()
+	 }
+	 }
+
+
+     fun getPlayedTimeById(context: Context, id: String): Int? {
+    return try {
+        val file = File(context.filesDir, "playedSong.json")
+        if (!file.exists() || file.readText().isEmpty()) return null
+
+        val jsonArray = JSONArray(file.readText())
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            if (obj.getString("id") == id) {
+                return obj.getInt("playedTime")
+            }
+        }
+
+        null // If not found
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+
+
+
+
 
 
 
